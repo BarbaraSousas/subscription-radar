@@ -2,36 +2,23 @@ import axios from 'axios'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
 
-// Create axios instance
+// Create axios instance for direct backend calls
+// TODO: This will be used for client-side API calls once backend is integrated
 export const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Important: send cookies with requests
 })
-
-// Request interceptor to add auth token
-api.interceptors.request.use(
-  (config) => {
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token')
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`
-      }
-    }
-    return config
-  },
-  (error) => Promise.reject(error)
-)
 
 // Response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
+      // Token expired or invalid - redirect to login
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('token')
         window.location.href = '/login'
       }
     }
@@ -40,6 +27,8 @@ api.interceptors.response.use(
 )
 
 // Auth API
+// TODO: Once backend is integrated, these can call the backend directly via `api` instance
+// For now, they'll go through Next.js API routes which handle mock mode
 export const authAPI = {
   register: (data: { email: string; password: string; full_name?: string }) =>
     api.post('/auth/register', data),
@@ -51,6 +40,7 @@ export const authAPI = {
 }
 
 // Subscriptions API
+// TODO: Once backend is integrated, these will call the FastAPI backend
 export const subscriptionsAPI = {
   list: (params?: {
     status_filter?: string
