@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
-// TODO: Replace with actual backend API call when integrated
-// For now, this is mock mode that accepts any credentials
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000'
+
 export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json()
@@ -15,21 +15,42 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // TODO: Once backend is integrated, make actual API call:
-    // const response = await fetch(`${process.env.BACKEND_URL}/api/v1/auth/login`, {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ email, password }),
-    // })
-    // if (!response.ok) throw new Error('Login failed')
-    // const data = await response.json()
+    // Call the FastAPI backend to authenticate
+    const loginResponse = await fetch(`${BACKEND_URL}/api/v1/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    })
 
-    // MOCK MODE: Accept any credentials for development
-    const mockToken = 'mock-jwt-token-' + Date.now()
+    if (!loginResponse.ok) {
+      const errorData = await loginResponse.json()
+      return NextResponse.json(
+        { detail: errorData.detail || 'Invalid credentials' },
+        { status: loginResponse.status }
+      )
+    }
 
-    // Set httpOnly cookie with the token
+    const { access_token } = await loginResponse.json()
+
+    // Fetch user data using the token
+    const userResponse = await fetch(`${BACKEND_URL}/api/v1/auth/me`, {
+      headers: {
+        Authorization: `Bearer ${access_token}`,
+      },
+    })
+
+    if (!userResponse.ok) {
+      return NextResponse.json(
+        { detail: 'Failed to fetch user data' },
+        { status: 500 }
+      )
+    }
+
+    const userData = await userResponse.json()
+
+    // Set httpOnly cookie with the JWT token
     const cookieStore = await cookies()
-    cookieStore.set('auth_token', mockToken, {
+    cookieStore.set('auth_token', access_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -38,20 +59,14 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json({
-      message: 'Login successful (mock mode)',
-      user: {
-        id: 1,
-        email,
-        full_name: 'Mock User',
-        is_active: true,
-        created_at: new Date().toISOString(),
-      },
+      message: 'Login successful',
+      user: userData,
     })
   } catch (error) {
     console.error('Login error:', error)
     return NextResponse.json(
-      { detail: 'Invalid credentials' },
-      { status: 401 }
+      { detail: error instanceof Error ? error.message : 'Login failed' },
+      { status: 500 }
     )
   }
 }

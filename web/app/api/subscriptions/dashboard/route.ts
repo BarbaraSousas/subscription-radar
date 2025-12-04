@@ -8,7 +8,6 @@ export async function GET(request: NextRequest) {
     const cookieStore = await cookies()
     const token = cookieStore.get('auth_token')
 
-    // Check if user is authenticated
     if (!token) {
       return NextResponse.json(
         { detail: 'Not authenticated' },
@@ -16,30 +15,27 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Call the FastAPI backend to get current user
-    const response = await fetch(`${BACKEND_URL}/api/v1/auth/me`, {
+    // Call the FastAPI backend to get dashboard stats
+    const response = await fetch(`${BACKEND_URL}/api/v1/subscriptions/dashboard`, {
       headers: {
         Authorization: `Bearer ${token.value}`,
       },
     })
 
     if (!response.ok) {
-      // Token is invalid - clear the cookie
-      const cookieStore = await cookies()
-      cookieStore.delete('auth_token')
-
+      const errorData = await response.json()
       return NextResponse.json(
-        { detail: 'Not authenticated' },
-        { status: 401 }
+        { detail: errorData.detail || 'Failed to fetch dashboard stats' },
+        { status: response.status }
       )
     }
 
-    const userData = await response.json()
-    return NextResponse.json(userData)
+    const data = await response.json()
+    return NextResponse.json(data)
   } catch (error) {
-    console.error('Get current user error:', error)
+    console.error('Dashboard fetch error:', error)
     return NextResponse.json(
-      { detail: error instanceof Error ? error.message : 'Failed to get user' },
+      { detail: error instanceof Error ? error.message : 'Failed to fetch dashboard' },
       { status: 500 }
     )
   }

@@ -55,17 +55,18 @@ export default function NewSubscriptionPage() {
       setIsLoading(true)
       setError(null)
 
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/v1/subscriptions', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(data),
-      // })
-      // if (!response.ok) throw new Error('Failed to create subscription')
+      // Call the backend API to create subscription
+      const response = await fetch('/api/subscriptions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Include cookies
+        body: JSON.stringify(data),
+      })
 
-      // MOCK MODE: Simulate API call
-      console.log('Creating subscription (mock):', data)
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Failed to create subscription')
+      }
 
       // Redirect to subscriptions list on success
       router.push('/subscriptions')

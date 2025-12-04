@@ -6,100 +6,30 @@ import { format } from 'date-fns'
 import { Button } from '@/components/ui/Button'
 import type { DashboardStats } from '@/types'
 
-// TODO: Replace with actual API call to /api/subscriptions/dashboard
-const getMockDashboardStats = (): DashboardStats => {
-  const today = new Date()
-
-  return {
-    total_monthly_spend: 127.96,
-    active_subscriptions: 5,
-    upcoming_renewals: [
-      {
-        subscription: {
-          id: 1,
-          name: 'Netflix',
-          vendor: 'Netflix Inc.',
-          category: 'Entertainment',
-          amount: 15.99,
-          currency: 'USD',
-          interval: 'monthly' as const,
-          next_renewal_date: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          start_date: '2024-01-01',
-          status: 'active' as const,
-          user_id: 1,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        days_until_renewal: 2,
-      },
-      {
-        subscription: {
-          id: 2,
-          name: 'Spotify',
-          vendor: 'Spotify AB',
-          category: 'Entertainment',
-          amount: 9.99,
-          currency: 'USD',
-          interval: 'monthly' as const,
-          next_renewal_date: new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          start_date: '2024-01-01',
-          status: 'active' as const,
-          user_id: 1,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        days_until_renewal: 5,
-      },
-      {
-        subscription: {
-          id: 3,
-          name: 'GitHub Pro',
-          vendor: 'GitHub',
-          category: 'Software',
-          amount: 4.00,
-          currency: 'USD',
-          interval: 'monthly' as const,
-          next_renewal_date: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          start_date: '2024-01-01',
-          status: 'active' as const,
-          user_id: 1,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        days_until_renewal: 7,
-      },
-    ],
-    spend_by_category: [
-      { category: 'Entertainment', total_amount: 25.98, count: 2 },
-      { category: 'Software', total_amount: 101.98, count: 3 },
-    ],
-  }
-}
-
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // TODO: Replace with actual API call
-    // const fetchStats = async () => {
-    //   try {
-    //     const response = await fetch('/api/subscriptions/dashboard')
-    //     const data = await response.json()
-    //     setStats(data)
-    //   } catch (error) {
-    //     console.error('Failed to fetch dashboard stats:', error)
-    //   } finally {
-    //     setIsLoading(false)
-    //   }
-    // }
-    // fetchStats()
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('/api/subscriptions/dashboard', {
+          credentials: 'include', // Include cookies
+        })
 
-    // MOCK MODE: Use mock data
-    setTimeout(() => {
-      setStats(getMockDashboardStats())
-      setIsLoading(false)
-    }, 500)
+        if (!response.ok) {
+          throw new Error('Failed to fetch dashboard stats')
+        }
+
+        const data = await response.json()
+        setStats(data)
+      } catch (error) {
+        console.error('Failed to fetch dashboard stats:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchStats()
   }, [])
 
   if (isLoading) {

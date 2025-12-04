@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
-// TODO: Replace with actual backend API call when integrated
-// For now, this is mock mode that accepts any registration
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000'
+
 export async function POST(request: NextRequest) {
   try {
     const { email, password, full_name } = await request.json()
@@ -29,21 +29,42 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // TODO: Once backend is integrated, make actual API call:
-    // const response = await fetch(`${process.env.BACKEND_URL}/api/v1/auth/register`, {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ email, password, full_name }),
-    // })
-    // if (!response.ok) throw new Error('Registration failed')
-    // const data = await response.json()
+    // Call the FastAPI backend to register
+    const registerResponse = await fetch(`${BACKEND_URL}/api/v1/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, full_name }),
+    })
 
-    // MOCK MODE: Accept any registration for development
-    const mockToken = 'mock-jwt-token-' + Date.now()
+    if (!registerResponse.ok) {
+      const errorData = await registerResponse.json()
+      return NextResponse.json(
+        { detail: errorData.detail || 'Registration failed' },
+        { status: registerResponse.status }
+      )
+    }
 
-    // Set httpOnly cookie with the token
+    const userData = await registerResponse.json()
+
+    // Now login to get the token
+    const loginResponse = await fetch(`${BACKEND_URL}/api/v1/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    })
+
+    if (!loginResponse.ok) {
+      return NextResponse.json(
+        { detail: 'Registration successful but login failed' },
+        { status: 500 }
+      )
+    }
+
+    const { access_token } = await loginResponse.json()
+
+    // Set httpOnly cookie with the JWT token
     const cookieStore = await cookies()
-    cookieStore.set('auth_token', mockToken, {
+    cookieStore.set('auth_token', access_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -53,21 +74,15 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        message: 'Registration successful (mock mode)',
-        user: {
-          id: 1,
-          email,
-          full_name: full_name || 'Mock User',
-          is_active: true,
-          created_at: new Date().toISOString(),
-        },
+        message: 'Registration successful',
+        user: userData,
       },
       { status: 201 }
     )
   } catch (error) {
     console.error('Registration error:', error)
     return NextResponse.json(
-      { detail: 'Registration failed' },
+      { detail: error instanceof Error ? error.message : 'Registration failed' },
       { status: 500 }
     )
   }
