@@ -3,8 +3,9 @@ from typing import Annotated
 from datetime import datetime, date, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlmodel import Session, select, func
+from sqlalchemy.exc import IntegrityError
 from app.db import get_session
-from app.models import Subscription, SubscriptionStatus, IntervalType
+from app.models import Subscription, SubscriptionStatus, BillingCycle
 from app.schemas import (
     SubscriptionCreate,
     SubscriptionUpdate,
@@ -18,43 +19,91 @@ from app.deps import CurrentUser
 router = APIRouter(prefix="/subscriptions", tags=["Subscriptions"])
 
 
-@router.post("", response_model=SubscriptionResponse, status_code=status.HTTP_201_CREATED)
+def subscription_to_response(subscription: Subscription) -> dict:
+    """Convert a Subscription model to frontend-expected format."""
+    return {
+        "id": subscription.id,
+        "name": subscription.name,
+        "cost": subscription.amount,
+        "billing_cycle": subscription.interval,
+        "next_renewal": subscription.next_renewal_date.isoformat(),
+        "category": subscription.category,
+        "vendor": subscription.vendor,
+        "currency": subscription.currency,
+        "custom_interval_days": subscription.custom_interval_days,
+        "last_paid_at": subscription.last_paid_at.isoformat() if subscription.last_paid_at else None,
+        "start_date": subscription.start_date.isoformat(),
+        "tags": subscription.tags,
+        "color": subscription.color,
+        "website": subscription.website,
+        "description": subscription.description,
+        "status": subscription.status,
+        "user_id": subscription.user_id,
+        "created_at": subscription.created_at.isoformat(),
+        "updated_at": subscription.updated_at.isoformat(),
+    }
+
+
+@router.post("", status_code=status.HTTP_201_CREATED)
 def create_subscription(
     subscription_data: SubscriptionCreate,
     current_user: CurrentUser,
     session: Annotated[Session, Depends(get_session)]
 ):
-    """
-    Create a new subscription.
+    payload = subscription_data.model_dump(by_alias=True)
 
-    Creates a subscription tied to the authenticated user.
-    """
-    db_subscription = Subscription(
-        **subscription_data.model_dump(),
-        user_id=current_user.id,
-        start_date=date.today()
-    )
+    # Map frontend field names to backend field names
+    field_mapping = {
+        "cost": "amount",
+        "billing_cycle": "interval",
+        "next_renewal": "next_renewal_date",
+    }
+
+    for frontend_field, backend_field in field_mapping.items():
+        if frontend_field in payload:
+            payload[backend_field] = payload.pop(frontend_field)
+
+    # Prevent client from attempting to set user_id
+    payload.pop("user_id", None)
+
+    try:
+        db_subscription = Subscription(**payload, user_id=current_user.id)
+    except TypeError as e:
+        # Field mismatch between schema and model
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid fields for Subscription model: {str(e)}"
+        ) from e
 
     session.add(db_subscription)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError as e:
+        session.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Database rejected subscription (missing required fields, invalid FK, or constraint violation)."
+        ) from e
+
     session.refresh(db_subscription)
 
-    return db_subscription
+    return subscription_to_response(db_subscription)
 
 
-@router.get("", response_model=list[SubscriptionResponse])
+@router.get("")
 def list_subscriptions(
     current_user: CurrentUser,
     session: Annotated[Session, Depends(get_session)],
     status_filter: SubscriptionStatus | None = Query(default=None),
     category: str | None = Query(default=None),
+    search: str | None = Query(default=None),
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=100)
 ):
     """
     List all subscriptions for the current user.
 
-    Supports filtering by status and category, with pagination.
+    Supports filtering by status, category, and search text, with pagination.
     """
     statement = select(Subscription).where(Subscription.user_id == current_user.id)
 
@@ -64,10 +113,13 @@ def list_subscriptions(
     if category:
         statement = statement.where(Subscription.category == category)
 
+    if search:
+        statement = statement.where(Subscription.name.ilike(f"%{search}%"))
+
     statement = statement.offset(skip).limit(limit).order_by(Subscription.next_renewal_date)
 
     subscriptions = session.exec(statement).all()
-    return subscriptions
+    return [subscription_to_response(sub) for sub in subscriptions]
 
 
 @router.get("/dashboard", response_model=DashboardStats)
@@ -94,12 +146,14 @@ def get_dashboard_stats(
     # Calculate total monthly spend
     total_monthly = 0.0
     for sub in active_subs:
-        if sub.interval == IntervalType.MONTHLY:
+        if sub.interval == "weekly":
+            total_monthly += sub.amount * 52 / 12
+        elif sub.interval == "monthly":
             total_monthly += sub.amount
-        elif sub.interval == IntervalType.ANNUAL:
+        elif sub.interval == "quarterly":
+            total_monthly += sub.amount * 4 / 12
+        elif sub.interval == "yearly":
             total_monthly += sub.amount / 12
-        elif sub.interval == IntervalType.CUSTOM and sub.custom_interval_days:
-            total_monthly += (sub.amount * 30) / sub.custom_interval_days
 
     # Get upcoming renewals (next 30 days)
     today = date.today()
@@ -115,10 +169,10 @@ def get_dashboard_stats(
     upcoming_subs = session.exec(upcoming_statement).all()
 
     upcoming_renewals = [
-        UpcomingRenewal(
-            subscription=SubscriptionResponse.model_validate(sub),
-            days_until_renewal=(sub.next_renewal_date - today).days
-        )
+        {
+            "subscription": subscription_to_response(sub),
+            "days_until_renewal": (sub.next_renewal_date - today).days
+        }
         for sub in upcoming_subs
     ]
 
@@ -151,7 +205,7 @@ def get_dashboard_stats(
     )
 
 
-@router.get("/{subscription_id}", response_model=SubscriptionResponse)
+@router.get("/{subscription_id}")
 def get_subscription(
     subscription_id: int,
     current_user: CurrentUser,
@@ -170,10 +224,10 @@ def get_subscription(
             detail="Subscription not found"
         )
 
-    return subscription
+    return subscription_to_response(subscription)
 
 
-@router.patch("/{subscription_id}", response_model=SubscriptionResponse)
+@router.patch("/{subscription_id}")
 def update_subscription(
     subscription_id: int,
     subscription_data: SubscriptionUpdate,
@@ -194,7 +248,19 @@ def update_subscription(
         )
 
     # Update only provided fields
-    update_data = subscription_data.model_dump(exclude_unset=True)
+    update_data = subscription_data.model_dump(exclude_unset=True, by_alias=True)
+
+    # Map frontend field names to backend field names
+    field_mapping = {
+        "cost": "amount",
+        "billing_cycle": "interval",
+        "next_renewal": "next_renewal_date",
+    }
+
+    for frontend_field, backend_field in field_mapping.items():
+        if frontend_field in update_data:
+            update_data[backend_field] = update_data.pop(frontend_field)
+
     for key, value in update_data.items():
         setattr(subscription, key, value)
 
@@ -204,7 +270,7 @@ def update_subscription(
     session.commit()
     session.refresh(subscription)
 
-    return subscription
+    return subscription_to_response(subscription)
 
 
 @router.delete("/{subscription_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -11,11 +11,7 @@ export interface Token {
   token_type: string
 }
 
-export enum IntervalType {
-  MONTHLY = 'monthly',
-  ANNUAL = 'annual',
-  CUSTOM = 'custom',
-}
+export type BillingCycle = 'weekly' | 'monthly' | 'quarterly' | 'yearly'
 
 export enum SubscriptionStatus {
   ACTIVE = 'active',
@@ -26,18 +22,14 @@ export enum SubscriptionStatus {
 export interface Subscription {
   id: number
   name: string
-  vendor?: string
-  category?: string
-  amount: number
-  currency: string
-  interval: IntervalType
-  custom_interval_days?: number
-  next_renewal_date: string
-  last_paid_at?: string
-  start_date: string
+  cost: number
+  billing_cycle: BillingCycle
+  category: string
+  next_renewal: string
+  color?: string
+  description?: string
+  website?: string
   status: SubscriptionStatus
-  tags?: string
-  notes?: string
   user_id: number
   created_at: string
   updated_at: string
@@ -59,4 +51,47 @@ export interface DashboardStats {
   active_subscriptions: number
   upcoming_renewals: UpcomingRenewal[]
   spend_by_category: CategorySpend[]
+}
+
+export interface SummaryStats {
+  total_monthly_cost: number
+  total_subscriptions: number
+  average_cost: number
+}
+
+export interface CycleSpend {
+  billing_cycle: string
+  total_amount: number
+  count: number
+}
+
+export interface MonthlyProjection {
+  month: string
+  projected_cost: number
+}
+
+export const CATEGORIES = [
+  'Entertainment',
+  'Software',
+  'Productivity',
+  'Health & Fitness',
+  'Education',
+  'Cloud Storage',
+  'Music',
+  'Gaming',
+  'News',
+  'Other'
+] as const
+
+export const CATEGORY_COLORS: Record<string, string> = {
+  'Entertainment': '#E50914',
+  'Software': '#FF6B6B',
+  'Productivity': '#4ECDC4',
+  'Health & Fitness': '#95E1D3',
+  'Education': '#F38181',
+  'Cloud Storage': '#AA96DA',
+  'Music': '#1DB954',
+  'Gaming': '#9D4EDD',
+  'News': '#FFB84D',
+  'Other': '#A8DADC'
 }

@@ -1,8 +1,9 @@
 # app/schemas.py
 from datetime import datetime, date
 from typing import Optional
-from pydantic import BaseModel, EmailStr, Field
-from app.models import IntervalType, SubscriptionStatus
+from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
+from app.models import BillingCycle, SubscriptionStatus
+import re
 
 
 # User Schemas
@@ -13,6 +14,17 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str = Field(min_length=8, max_length=72)
+
+    @field_validator('password')
+    @classmethod
+    def validate_password_strength(cls, v):
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('Password must contain at least one uppercase letter')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('Password must contain at least one lowercase letter')
+        if not re.search(r'[0-9]', v):
+            raise ValueError('Password must contain at least one number')
+        return v
 
 
 class UserLogin(BaseModel):
@@ -41,18 +53,24 @@ class TokenData(BaseModel):
 
 # Subscription Schemas
 class SubscriptionBase(BaseModel):
-    name: str
+    name: str = Field(min_length=1, max_length=100)
+    cost: float = Field(gt=0, alias="amount")
+    billing_cycle: str = Field(default="monthly", alias="interval")
+    category: str = Field(default="Other")
+    next_renewal: date = Field(alias="next_renewal_date")
     vendor: Optional[str] = None
-    category: Optional[str] = "Other"
-    amount: float = Field(gt=0)
-    currency: str = Field(default="USD", max_length=3)
-    interval: IntervalType = IntervalType.MONTHLY
+    currency: str = Field(default="USD")
     custom_interval_days: Optional[int] = None
-    next_renewal_date: date
     last_paid_at: Optional[date] = None
-    status: SubscriptionStatus = SubscriptionStatus.ACTIVE
+    start_date: Optional[date] = None
     tags: Optional[str] = None
-    notes: Optional[str] = None
+    color: Optional[str] = Field(default="#6366f1")
+    website: Optional[str] = None
+    description: Optional[str] = None
+    status: SubscriptionStatus = SubscriptionStatus.ACTIVE
+
+    class Config:
+        populate_by_name = True
 
 
 class SubscriptionCreate(SubscriptionBase):
@@ -60,29 +78,50 @@ class SubscriptionCreate(SubscriptionBase):
 
 
 class SubscriptionUpdate(BaseModel):
-    name: Optional[str] = None
-    vendor: Optional[str] = None
+    name: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    cost: Optional[float] = Field(default=None, gt=0, alias="amount")
+    billing_cycle: Optional[str] = Field(default=None, alias="interval")
     category: Optional[str] = None
-    amount: Optional[float] = Field(default=None, gt=0)
+    next_renewal: Optional[date] = Field(default=None, alias="next_renewal_date")
+    vendor: Optional[str] = None
     currency: Optional[str] = None
-    interval: Optional[IntervalType] = None
     custom_interval_days: Optional[int] = None
-    next_renewal_date: Optional[date] = None
     last_paid_at: Optional[date] = None
-    status: Optional[SubscriptionStatus] = None
+    start_date: Optional[date] = None
     tags: Optional[str] = None
-    notes: Optional[str] = None
+    color: Optional[str] = None
+    website: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[SubscriptionStatus] = None
+
+    class Config:
+        populate_by_name = True
 
 
-class SubscriptionResponse(SubscriptionBase):
+class SubscriptionResponse(BaseModel):
     id: int
-    user_id: int
+    name: str
+    cost: float = Field(serialization_alias="cost")
+    billing_cycle: str = Field(serialization_alias="billing_cycle")
+    next_renewal: date = Field(serialization_alias="next_renewal")
+    category: str
+    vendor: Optional[str] = None
+    currency: str
+    custom_interval_days: Optional[int] = None
+    last_paid_at: Optional[date] = None
     start_date: date
+    tags: Optional[str] = None
+    color: Optional[str] = None
+    website: Optional[str] = None
+    description: Optional[str] = None
+    status: SubscriptionStatus
+    user_id: int
     created_at: datetime
     updated_at: datetime
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 
 # Analytics Schemas

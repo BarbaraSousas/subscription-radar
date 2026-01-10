@@ -1,9 +1,9 @@
 import axios from 'axios'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
+// Use Next.js API routes which handle authentication
+const API_URL = '/api'
 
-// Create axios instance for direct backend calls
-// TODO: This will be used for client-side API calls once backend is integrated
+// Create axios instance that calls Next.js API routes
 export const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -40,11 +40,11 @@ export const authAPI = {
 }
 
 // Subscriptions API
-// TODO: Once backend is integrated, these will call the FastAPI backend
 export const subscriptionsAPI = {
   list: (params?: {
     status_filter?: string
     category?: string
+    search?: string
     skip?: number
     limit?: number
   }) => api.get('/subscriptions', { params }),
@@ -58,4 +58,19 @@ export const subscriptionsAPI = {
   delete: (id: number) => api.delete(`/subscriptions/${id}`),
 
   getDashboard: () => api.get('/subscriptions/dashboard'),
+}
+
+// Analytics API (using Next.js API routes)
+export const analyticsAPI = {
+  getSummary: () => api.get('/analytics/summary'),
+
+  getByCategory: () => api.get('/analytics/by-category'),
+
+  getByCycle: () => api.get('/analytics/by-cycle'),
+
+  getUpcoming: (days: number = 30) =>
+    api.get('/analytics/upcoming', { params: { days } }),
+
+  getMonthlyProjection: (months: number = 12) =>
+    api.get('/analytics/monthly-projection', { params: { months } }),
 }

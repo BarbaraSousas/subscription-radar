@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.db import create_db_and_tables
-from app.api.v1 import auth, subscriptions
+from app.api.v1 import auth, subscriptions, analytics
 
 
 @asynccontextmanager
@@ -41,6 +41,7 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(subscriptions.router, prefix="/api/v1")
+app.include_router(analytics.router, prefix="/api/v1")
 
 
 @app.get("/")

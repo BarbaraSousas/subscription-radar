@@ -5,10 +5,11 @@ from sqlmodel import Field, SQLModel, Relationship
 from enum import Enum
 
 
-class IntervalType(str, Enum):
+class BillingCycle(str, Enum):
+    WEEKLY = "weekly"
     MONTHLY = "monthly"
-    ANNUAL = "annual"
-    CUSTOM = "custom"
+    QUARTERLY = "quarterly"
+    YEARLY = "yearly"
 
 
 class SubscriptionStatus(str, Enum):
@@ -37,24 +38,28 @@ class Subscription(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(nullable=False, index=True)
+
+    # Database uses these column names
+    amount: float = Field(nullable=False, sa_column_kwargs={"name": "amount"})
+    interval: str = Field(default="monthly", sa_column_kwargs={"name": "interval"})
+    next_renewal_date: date = Field(nullable=False, index=True, sa_column_kwargs={"name": "next_renewal_date"})
+
+    # Optional fields from database
     vendor: Optional[str] = None
-    category: Optional[str] = Field(default="Other", index=True)
-    amount: float = Field(nullable=False)
-    currency: str = Field(default="USD", max_length=3)
-
-    # Interval configuration
-    interval: IntervalType = Field(default=IntervalType.MONTHLY)
-    custom_interval_days: Optional[int] = Field(default=None)
-
-    # Dates
-    next_renewal_date: date = Field(nullable=False, index=True)
+    category: str = Field(default="Other", index=True)
+    currency: str = Field(default="USD")
+    custom_interval_days: Optional[int] = None
     last_paid_at: Optional[date] = None
     start_date: date = Field(default_factory=date.today)
-
-    # Status & metadata
-    status: SubscriptionStatus = Field(default=SubscriptionStatus.ACTIVE)
     tags: Optional[str] = None
-    notes: Optional[str] = None
+
+    # Frontend-specific fields
+    color: Optional[str] = Field(default="#6366f1")  # Default indigo color
+    website: Optional[str] = None
+    description: Optional[str] = None
+
+    # Status
+    status: SubscriptionStatus = Field(default=SubscriptionStatus.ACTIVE)
 
     # Timestamps
     created_at: datetime = Field(default_factory=datetime.utcnow)

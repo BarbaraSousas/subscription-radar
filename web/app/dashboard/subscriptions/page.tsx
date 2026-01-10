@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { SubscriptionDashboard } from '@/components/SubscriptionDashboard'
+import { SubscriptionList } from '@/components/SubscriptionList'
 import { subscriptionsAPI } from '@/lib/api'
 import type { Subscription } from '@/types'
 
-export default function DashboardPage() {
+export default function SubscriptionsPage() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -49,5 +49,5 @@ export default function DashboardPage() {
     )
   }
 
-  return <SubscriptionDashboard subscriptions={subscriptions} onEdit={handleEdit} onDelete={handleDelete} />
+  return <SubscriptionList subscriptions={subscriptions} onEdit={handleEdit} onDelete={handleDelete} />
 }
