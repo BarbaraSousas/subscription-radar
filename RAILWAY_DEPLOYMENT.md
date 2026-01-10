@@ -41,9 +41,11 @@ git push -u origin main
 
 ### 4. Deploy Backend Service
 
-1. Click **"+ New"** → **"Service"** → Select your GitHub repo
-2. Set the **Root Directory** to `backend`
-3. Railway will auto-detect Python and use the `railway.toml` config
+1. Click **"+ New"** → **"GitHub Repo"** → Select your repository
+2. Railway will create a service
+3. Go to **Settings** → **Source** → Set **Root Directory** to `backend`
+4. Railway will auto-detect Python using `nixpacks.toml` and `Procfile`
+5. The service will automatically deploy
 
 #### Configure Backend Environment Variables:
 
@@ -82,9 +84,11 @@ alembic upgrade head
 
 ### 5. Deploy Frontend Service
 
-1. Click **"+ New"** → **"Service"** → Select your GitHub repo
-2. Set the **Root Directory** to `web`
-3. Railway will auto-detect Next.js and use the `railway.toml` config
+1. Click **"+ New"** → **"GitHub Repo"** → Select your repository
+2. Railway will create a service
+3. Go to **Settings** → **Source** → Set **Root Directory** to `web`
+4. Railway will auto-detect Next.js using `nixpacks.toml` and `package.json`
+5. The service will automatically build and deploy
 
 #### Configure Frontend Environment Variables:
 
@@ -225,7 +229,7 @@ railway run alembic upgrade head
 railway logs
 
 # Open service in browser
-railway open
+railway open 
 ```
 
 ## Support
