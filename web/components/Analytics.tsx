@@ -70,7 +70,7 @@ export function Analytics({ subscriptions }: Props) {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+                <Tooltip formatter={(value) => `$${Number(value ?? 0).toFixed(2)}`} />
               </PieChart>
             </ResponsiveContainer>
           ) : (
