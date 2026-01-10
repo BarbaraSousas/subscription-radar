@@ -1,6 +1,7 @@
 # app/core/config.py
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import field_validator
+import json
 
 class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+psycopg2://postgres:postgres@localhost:5432/subs"
@@ -22,6 +23,22 @@ class Settings(BaseSettings):
             v = v.replace("postgres://", "postgresql://", 1)
         if v.startswith("postgresql://") and "+psycopg2" not in v:
             v = v.replace("postgresql://", "postgresql+psycopg2://", 1)
+        return v
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v):
+        """
+        Parse CORS_ORIGINS from string or list.
+        Handles JSON string format: '["http://example.com"]'
+        """
+        if isinstance(v, str):
+            # Try to parse as JSON
+            try:
+                return json.loads(v)
+            except json.JSONDecodeError:
+                # If not JSON, treat as single origin
+                return [v]
         return v
 
 settings = Settings()

@@ -15,15 +15,24 @@ async def lifespan(app: FastAPI):
     On startup: Create database tables (for development).
     In production, use Alembic migrations instead.
     """
-    print("Starting up...")
+    print("=" * 50)
+    print("STARTUP: Beginning application startup...")
+    print(f"STARTUP: DATABASE_URL starts with: {settings.DATABASE_URL[:20]}...")
+    print(f"STARTUP: CORS_ORIGINS: {settings.CORS_ORIGINS}")
+    print("=" * 50)
+
     try:
+        print("STARTUP: Creating database tables...")
         create_db_and_tables()
-        print("Database tables created successfully")
+        print("STARTUP: ✓ Database tables created successfully")
     except Exception as e:
-        print(f"Warning: Could not create database tables: {e}")
-        print("App will continue, but database operations may fail")
+        print(f"STARTUP: ✗ Warning: Could not create database tables: {e}")
+        print("STARTUP: App will continue, but database operations may fail")
+
+    print("STARTUP: ✓ Application startup complete!")
+    print("=" * 50)
     yield
-    print("Shutting down...")
+    print("SHUTDOWN: Shutting down...")
 
 
 # Create FastAPI application
