@@ -114,7 +114,7 @@ export function Analytics({ subscriptions }: Props) {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
               <YAxis />
-              <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+              <Tooltip formatter={(value) => `$${Number(value ?? 0).toFixed(2)}`} />
               <Legend />
               <Bar dataKey="monthly" fill="#6366f1" name="Monthly Cost" />
               <Bar dataKey="yearly" fill="#a855f7" name="Yearly Cost" />
