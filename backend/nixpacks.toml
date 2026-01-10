@@ -1,8 +1,8 @@
 [phases.setup]
-nixPkgs = ["python39", "postgresql"]
+nixPkgs = ["python39", "pip", "postgresql"]
 
 [phases.install]
-cmds = ["python -m pip install --upgrade pip", "python -m pip install -r requirements.txt"]
+cmds = ["pip install --upgrade pip setuptools wheel", "pip install -r requirements.txt"]
 
 [phases.build]
 cmds = ["echo 'Build phase complete'"]
