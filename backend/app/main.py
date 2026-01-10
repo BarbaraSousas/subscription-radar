@@ -16,7 +16,12 @@ async def lifespan(app: FastAPI):
     In production, use Alembic migrations instead.
     """
     print("Starting up...")
-    create_db_and_tables()
+    try:
+        create_db_and_tables()
+        print("Database tables created successfully")
+    except Exception as e:
+        print(f"Warning: Could not create database tables: {e}")
+        print("App will continue, but database operations may fail")
     yield
     print("Shutting down...")
 
