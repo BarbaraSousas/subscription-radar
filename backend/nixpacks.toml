@@ -7,6 +7,3 @@ cmds = ["pip3 install --break-system-packages -r requirements.txt"]
 
 [phases.build]
 cmds = ["echo 'Build phase complete'"]
-
-[start]
-cmd = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
