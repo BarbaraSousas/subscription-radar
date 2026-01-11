@@ -21,15 +21,16 @@ async def lifespan(app: FastAPI):
     print(f"STARTUP: CORS_ORIGINS: {settings.CORS_ORIGINS}")
     print("=" * 50)
 
-    try:
-        print("STARTUP: Creating database tables...")
-        create_db_and_tables()
-        print("STARTUP: ✓ Database tables created successfully")
-    except Exception as e:
-        print(f"STARTUP: ✗ Warning: Could not create database tables: {e}")
-        print("STARTUP: App will continue, but database operations may fail")
+    # Temporarily disable database table creation to debug Railway deployment
+    # try:
+    #     print("STARTUP: Creating database tables...")
+    #     create_db_and_tables()
+    #     print("STARTUP: ✓ Database tables created successfully")
+    # except Exception as e:
+    #     print(f"STARTUP: ✗ Warning: Could not create database tables: {e}")
+    #     print("STARTUP: App will continue, but database operations may fail")
 
-    print("STARTUP: ✓ Application startup complete!")
+    print("STARTUP: ✓ Application startup complete (DB creation disabled)")
     print("=" * 50)
     yield
     print("SHUTDOWN: Shutting down...")
