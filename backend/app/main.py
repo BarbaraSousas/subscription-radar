@@ -80,7 +80,26 @@ def health_check():
     Health check endpoint.
     Use this for monitoring and load balancers.
     """
-    return {"status": "healthy"}
+    from app.db import engine
+
+    health_status = {
+        "status": "healthy",
+        "database": "unknown"
+    }
+
+    # Check database connection
+    if engine is None:
+        health_status["database"] = "not_configured"
+    else:
+        try:
+            from sqlalchemy import text
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            health_status["database"] = "connected"
+        except Exception as e:
+            health_status["database"] = f"error: {str(e)[:50]}"
+
+    return health_status
 
 
 if __name__ == "__main__":
