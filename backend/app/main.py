@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.db import create_db_and_tables
 from app.api.v1 import auth, subscriptions, analytics
+import os
 
 
 @asynccontextmanager
@@ -17,6 +18,7 @@ async def lifespan(app: FastAPI):
     """
     print("=" * 50)
     print("STARTUP: Beginning application startup...")
+    print(f"STARTUP: PORT environment variable: {os.getenv('PORT', 'NOT SET')}")
     print(f"STARTUP: DATABASE_URL starts with: {settings.DATABASE_URL[:20]}...")
     print(f"STARTUP: CORS_ORIGINS: {settings.CORS_ORIGINS}")
     print("=" * 50)
